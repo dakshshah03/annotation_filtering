@@ -3,7 +3,8 @@ import numpy as np
 import cv2
 import os
 from collections import namedtuple
-from pynput import Key, Listener
+import tkinter as tk
+from PIL import Image, ImageTk
 
 image_dir = os.getcwd() + "/kitti/images/"    # relative directory to images
 GT_dir = os.getcwd() + "/kitti/labels/"             # relative directory to ground truth data
@@ -13,21 +14,6 @@ HL_color = (0, 0, 255)          # human label box color
 min_IoU_thres = 0.5             # minumum IoU threshold
 Detection = namedtuple("Detection", ["image_name", "label", "gt", "pred"])
 Coordinates = namedtuple("Coordinates", ["label", "coords"])
-
-def on_press(key):
-    print('{0} pressed'.format(
-        key))
-
-def on_release(key):
-    print('{0} release'.format(
-        key))
-    if key == Key.e:
-        
-    elif key == key.q:
-        
-    elif key == key.c:
-        # Stop listener
-        return False
 
 def image_name(image_number):
     file_name = str(image_number)
@@ -63,8 +49,15 @@ def calculate_IoU(boxA, boxB):
     return iou
     
 # to do
-def validate_data(outfile, label, x1, y1, x2, y2):
+def validate_data(outfile, label, coords):
     file = open(outfile)
+
+def on_q_click():
+    print("Rejected")
+    
+def on_e_click(outfile, x):
+    validate_data()
+    print("Accepted")
 
 def display_image(infile):
     GT_coords = []
@@ -92,13 +85,13 @@ def display_image(infile):
         if(not no_break):
            false_positives.append(HL_coords[-1])
     HL_file.close()
-    print(len(false_positives))
+    
+    # opens image
+    img = cv2.imread(image_dir + infile + '.png')
+    
     for x in false_positives:
-        # opens image
-        img = cv2.imread(image_dir + infile + '.png')
-        print(img.shape)
         img_prototype = overlay_box(img, x.coords, HL_color)
-        print(x.coords)
+        
         cv2.imshow(image_dir + infile + ".png", img_prototype)
         if(pt.read_key() == "e"):
             # if e, then approve
