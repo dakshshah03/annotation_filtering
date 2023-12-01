@@ -6,10 +6,11 @@ from collections import namedtuple
 import tkinter as tk
 from PIL import Image, ImageTk
 
-image_dir = os.getcwd() + "/kitti/images/"    # relative directory to images
-GT_dir = os.getcwd() + "/kitti/labels/"             # relative directory to ground truth data
-HL_dir = os.getcwd() + "/original/"           # relative directory to predicted data
-validated_dir = os.getcwd() + "/validated_FP_data/"
+image_dir = os.path.expanduser('~') + "/annotation_filtering/kitti/images/"    # relative directory to images
+GT_dir = os.path.expanduser('~') + "/annotation_filtering/kitti/labels/"             # relative directory to ground truth data
+HL_dir = os.path.expanduser('~') + "/annotation_filtering/original/"           # relative directory to predicted data
+validated_dir = os.path.expanduser('~') + "/annotation_filtering/validated_FP_data/"
+
 GT_color = (255, 0, 0)          # ground truth box color
 HL_color = (0, 0, 255)          # human label box color
 min_IoU_thres = 0.5             # minumum IoU threshold
@@ -50,20 +51,7 @@ def calculate_IoU(boxA, boxB):
     # return the intersection over union value
     return iou
     
-# to do
-
-    
-    
-def reject_button():
-    print("Rejected")
-    
-def accept_button(outfile, n, HL_info, new_image):
-    validate_data(outfile, n, HL_info)
-    print("Accepted")
-    
-def validate_data(outfile, n, HL_info):
-    outfile.write(HL_info[n])
-    
+# to do    
 
 def display_image(infile):
     GT_coords = []
@@ -98,37 +86,48 @@ def display_image(infile):
     img = cv2.imread(image_dir + infile + '.png')
     
     # opens file to write to
-    file = open(validated_dir + infile + ".txt", "w")
-    
+    outfile = open(validated_dir + infile + ".txt", "w")
+    print(false_positives)
     for n, x in false_positives:
         img_prototype = cv2.cvtColor(overlay_box(img, x.coords, HL_color), cv2.COLOR_BGR2RGB)
         
         window = tk.Tk()
-        window.title(image_dir + infile + ".png, " + (n+1) + " of " + len(false_positives))
+        window.title(image_dir + infile + ".png, " + str(n+1) + " of " + str(len(false_positives)))
         img_tk = ImageTk.PhotoImage(Image.fromarray(img_prototype))
         label_img = tk.Label(window, image=img_tk)
         label_img.pack()
         
         # Create buttons and place them below the image
-        button1 = tk.Button(window, text="Accept Label", command=accept_button)
+        button1 = tk.Button(window,
+                            text="Accept Label",
+                            command=lambda: accept_button(outfile, n, HL_info, window))
         button1.pack(pady=10)  # Adjust the padding as needed
 
-        button2 = tk.Button(window, text="Reject Label", command=reject_button)
+        button2 = tk.Button(window,
+                            text="Reject Label",
+                            command=lambda: reject_button(window))
         button2.pack(pady=10)  # Adjust the padding as needed
         
         # cv2.imshow(image_dir + infile + ".png", img_prototype)
         
         window.mainloop()
     
-    file.close()
+    outfile.close()
 
+def reject_button(window):
+    print("Rejected")
+    window.destroy()
+    
+def accept_button(outfile, n, HL_info, window):
+    validate_data(outfile, n, HL_info)
+    print("Accepted")
+    window.destroy()
+    
+def validate_data(outfile, n, HL_info):
+    outfile.write(HL_info[n])
 
 if __name__ == '__main__':
     
     num_images = 500
     
-    file = np.genfromtxt(HL_dir + image_name(1) + ".txt", delimiter=" ")
-    # print(file)
-    
-    display_image(image_name(1))
-    # window_name = image_name(1) + '.png'
+    display_image(image_name(8))
