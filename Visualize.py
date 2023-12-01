@@ -9,11 +9,13 @@ from PIL import Image, ImageTk
 image_dir = os.getcwd() + "/kitti/images/"    # relative directory to images
 GT_dir = os.getcwd() + "/kitti/labels/"             # relative directory to ground truth data
 HL_dir = os.getcwd() + "/original/"           # relative directory to predicted data
+validated_dir = os.getcwd() + "/validated_FP_data/"
 GT_color = (255, 0, 0)          # ground truth box color
 HL_color = (0, 0, 255)          # human label box color
 min_IoU_thres = 0.5             # minumum IoU threshold
 Detection = namedtuple("Detection", ["image_name", "label", "gt", "pred"])
 Coordinates = namedtuple("Coordinates", ["label", "coords"])
+
 
 def image_name(image_number):
     file_name = str(image_number)
@@ -49,19 +51,24 @@ def calculate_IoU(boxA, boxB):
     return iou
     
 # to do
-def validate_data(outfile, label, coords):
-    file = open(outfile)
 
-def on_q_click():
+    
+    
+def reject_button():
     print("Rejected")
     
-def on_e_click(outfile, x):
-    validate_data()
+def accept_button(outfile, n, HL_info, new_image):
+    validate_data(outfile, n, HL_info)
     print("Accepted")
+    
+def validate_data(outfile, n, HL_info):
+    outfile.write(HL_info[n])
+    
 
 def display_image(infile):
     GT_coords = []
     HL_coords = []
+    HL_info = []
     false_positives = []
     no_break = False
     
@@ -72,8 +79,9 @@ def display_image(infile):
     GT_file.close()
     
     HL_file = open(HL_dir + infile + ".txt", "r")
-    for x in HL_file:
+    for n, x in enumerate(HL_file):
         no_break = False
+        HL_info.append(x)
         x = x.split(sep=" ")
         HL_coords.append(Coordinates(x[0], (float(x[4]), float(x[5]), float(x[6]), float(x[7]))))
         for gt in GT_coords:
@@ -83,26 +91,36 @@ def display_image(infile):
                 no_break = True
                 break
         if(not no_break):
-           false_positives.append(HL_coords[-1])
+           false_positives.append((n, HL_coords[-1]))
     HL_file.close()
     
     # opens image
     img = cv2.imread(image_dir + infile + '.png')
     
-    for x in false_positives:
-        img_prototype = overlay_box(img, x.coords, HL_color)
+    # opens file to write to
+    file = open(validated_dir + infile + ".txt", "w")
+    
+    for n, x in false_positives:
+        img_prototype = cv2.cvtColor(overlay_box(img, x.coords, HL_color), cv2.COLOR_BGR2RGB)
         
-        cv2.imshow(image_dir + infile + ".png", img_prototype)
-        if(pt.read_key() == "e"):
-            # if e, then approve
-            # to do
-            print("Approve")
-            # `````````````````````` insert function call to validate_coordinate
-            cv2.destroyAllWindows()
-        elif(pt.read_key() == "q"):
-            # if q, then deny
-            print("Deny")
-            cv2.destroyAllWindows()
+        window = tk.Tk()
+        window.title(image_dir + infile + ".png, " + (n+1) + " of " + len(false_positives))
+        img_tk = ImageTk.PhotoImage(Image.fromarray(img_prototype))
+        label_img = tk.Label(window, image=img_tk)
+        label_img.pack()
+        
+        # Create buttons and place them below the image
+        button1 = tk.Button(window, text="Accept Label", command=accept_button)
+        button1.pack(pady=10)  # Adjust the padding as needed
+
+        button2 = tk.Button(window, text="Reject Label", command=reject_button)
+        button2.pack(pady=10)  # Adjust the padding as needed
+        
+        # cv2.imshow(image_dir + infile + ".png", img_prototype)
+        
+        window.mainloop()
+    
+    file.close()
 
 
 if __name__ == '__main__':
