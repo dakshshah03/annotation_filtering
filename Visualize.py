@@ -129,5 +129,5 @@ def validate_data(outfile, n, HL_info):
 if __name__ == '__main__':
     
     num_images = 500
-    
-    display_image(image_name(8))
+    for x in range(6):
+        display_image(image_name(x))
